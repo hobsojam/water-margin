@@ -39,6 +39,16 @@ reported as trusted even by this tool's own `verify`. For real trust,
 either get a certificate from a CA on C2PA's trust list (see below), or
 set up a private trust root for your own closed system (also below).
 
+`verify` reads both layers, not just detects them: it prints the actual
+manifest contents (generator, version, prompt, creation time) when a
+C2PA manifest is present, and the raw decoded pixel-watermark payload
+alongside the pass/fail detection (real-world JPEG re-encoding, even
+`mark`'s own output write, flips a couple of bits, so the decoded bytes
+won't always match the expected payload exactly even when detection
+correctly succeeds via the tolerant bit-error check). Pass `--json` for
+the full structured result, including the raw manifest JSON, instead of
+the human-readable summary.
+
 `verify` reports signing trust explicitly (`signing certificate trusted:
 False` for anything signed with `--dev-cert`, or any tampered/unknown
 credential). It does not just report "manifest present". A manifest

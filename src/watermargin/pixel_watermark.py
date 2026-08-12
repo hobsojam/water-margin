@@ -41,6 +41,24 @@ def _hamming_distance(a: bytes, b: bytes) -> int:
     return sum(bin(x ^ y).count("1") for x, y in zip(a, b))
 
 
+def decode_watermark(path: Path) -> bytes | None:
+    """Return the raw decoded payload bytes, or None if the image is too small to decode.
+
+    This does NOT check whether the result matches the expected payload,
+    that's what detect_watermark is for. Exposed separately so callers can
+    see what was actually read back (e.g. for diagnostics, or to show the
+    hamming distance from the expected payload rather than just a bool).
+    """
+    image = cv2.imread(str(path))
+    if image is None:
+        raise ValueError(f"Could not read image: {path}")
+    if image.shape[0] * image.shape[1] < _MIN_PIXELS:
+        return None
+
+    decoder = WatermarkDecoder(wm_type="bytes", length=_PAYLOAD_BITS)
+    return decoder.decode(image, method=_METHOD)
+
+
 def detect_watermark(path: Path, max_bit_errors: int = 16) -> bool:
     """Return True if the watermark payload is detectable in the image.
 
@@ -55,12 +73,7 @@ def detect_watermark(path: Path, max_bit_errors: int = 16) -> bool:
     and reliably defeats detection even at a generous threshold; see
     README limitations.
     """
-    image = cv2.imread(str(path))
-    if image is None:
-        raise ValueError(f"Could not read image: {path}")
-    if image.shape[0] * image.shape[1] < _MIN_PIXELS:
+    decoded = decode_watermark(path)
+    if decoded is None:
         return False
-
-    decoder = WatermarkDecoder(wm_type="bytes", length=_PAYLOAD_BITS)
-    decoded = decoder.decode(image, method=_METHOD)
     return _hamming_distance(decoded, _PAYLOAD) <= max_bit_errors

@@ -180,6 +180,27 @@ def read_trust_status(path: Path, trust_anchor_pem: bytes | None = None) -> Trus
     )
 
 
+def extract_generation_info(manifest: dict) -> dict:
+    """Pull the human-relevant fields back out of a manifest: generator
+    name/version, prompt, and creation timestamp, whatever is present.
+    Missing fields are simply omitted from the returned dict.
+    """
+    info: dict = {}
+    for assertion in manifest.get("assertions", []):
+        if assertion.get("label") in ("c2pa.actions", "c2pa.actions.v2"):
+            for action in assertion.get("data", {}).get("actions", []):
+                agent = action.get("softwareAgent")
+                if isinstance(agent, dict):
+                    info.setdefault("generator_name", agent.get("name"))
+                    info.setdefault("generator_version", agent.get("version"))
+        elif assertion.get("label") == "stds.schema-org.CreativeWork":
+            data = assertion.get("data", {})
+            info.setdefault("created_at", data.get("dateCreated"))
+            if "disambiguatingDescription" in data:
+                info.setdefault("prompt", data["disambiguatingDescription"])
+    return info
+
+
 def is_ai_generated(manifest: dict) -> bool:
     """Check whether a manifest dict declares trainedAlgorithmicMedia content."""
     for assertion in manifest.get("assertions", []):

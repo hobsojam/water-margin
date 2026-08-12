@@ -7,6 +7,7 @@ import pytest
 from watermargin.pixel_watermark import (
     _PAYLOAD,
     _hamming_distance,
+    decode_watermark,
     detect_watermark,
     embed_watermark,
 )
@@ -38,6 +39,33 @@ def test_watermark_does_not_survive_crop(sample_image: Path, tmp_output: Path) -
     cropped_path = tmp_output.with_name("cropped.jpg")
     cv2.imwrite(str(cropped_path), cropped, [cv2.IMWRITE_JPEG_QUALITY, 90])
     assert detect_watermark(cropped_path) is False
+
+
+def test_decode_returns_exact_payload_with_no_lossy_step_in_the_chain(
+    sample_image: Path, tmp_path: Path
+) -> None:
+    """JPEG re-encoding (even embed_watermark's own output write) flips a
+    couple of bits, that's expected and covered by the tolerant
+    detect_watermark. Embedding straight to PNG avoids any lossy step, so
+    the raw decode should match exactly here.
+    """
+    png_out = tmp_path / "output.png"
+    embed_watermark(sample_image, png_out)
+    assert decode_watermark(png_out) == _PAYLOAD
+
+
+def test_decode_returns_none_for_undersized_image(tmp_path: Path) -> None:
+    small = tmp_path / "small.jpg"
+    cv2.imwrite(str(small), np.zeros((10, 10, 3), dtype=np.uint8))
+    assert decode_watermark(small) is None
+
+
+def test_decode_on_unwatermarked_image_returns_bytes_not_matching_payload(
+    sample_image: Path,
+) -> None:
+    decoded = decode_watermark(sample_image)
+    assert decoded is not None
+    assert decoded != _PAYLOAD
 
 
 def test_hamming_distance() -> None:

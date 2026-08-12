@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Optional
@@ -67,11 +68,18 @@ def verify(
         help="Root cert from 'generate-ca' to check trust against a private "
         "trust root instead of the public C2PA trust list.",
     ),
+    as_json: bool = typer.Option(
+        False, "--json", help="Print the full structured result (manifest, decoded "
+        "payload, trust status) as JSON instead of the human-readable summary."
+    ),
 ) -> None:
     """Check PATH for both a C2PA manifest and the pixel watermark, independently."""
     trust_anchor_pem = trust_anchor.read_bytes() if trust_anchor else None
     result = verify_image(path, trust_anchor_pem=trust_anchor_pem)
-    typer.echo(result.summary())
+    if as_json:
+        typer.echo(json.dumps(result.to_dict(), indent=2))
+    else:
+        typer.echo(result.summary())
 
 
 def _write_private(path: Path, data: bytes) -> None:
