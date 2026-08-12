@@ -1,0 +1,26 @@
+[project]
+name = "watermargin"
+version = "0.1.0"
+description = "Mark AI-generated images with C2PA provenance metadata and an imperceptible pixel watermark (EU AI Act Article 50(2))"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "c2pa-python>=0.37.0",
+    "invisible-watermark>=0.2.0",
+    "typer>=0.12.0",
+    "cryptography>=42.0.0",
+    "pillow>=10.0.0",
+]
+
+[project.scripts]
+watermargin = "watermargin.cli:app"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
